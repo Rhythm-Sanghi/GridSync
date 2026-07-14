@@ -1,0 +1,368 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Keyframes referenced by tailwind.config.ts custom animations */
+@keyframes pulseGlow {
+  0% { opacity: 0.6; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes stepFlash {
+  0% { filter: brightness(2.5) saturate(1.5); }
+  100% { filter: brightness(1) saturate(1); }
+}
+@keyframes screenPulse {
+  0% { transform: scale(1.004); }
+  100% { transform: scale(1); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+
+/* ── CSS Custom Properties ─────────────────────────────────────────────────── */
+:root {
+  --neon-cyan: #00f5ff;
+  --neon-magenta: #ff00a8;
+  --neon-lime: #a8ff00;
+  --neon-orange: #ff8c00;
+  --neon-violet: #b400ff;
+  --neon-yellow: #ffe600;
+  --neon-red: #ff3355;
+
+  --bg-950: #050508;
+  --bg-900: #0a0a14;
+  --bg-800: #10101e;
+  --bg-700: #16162a;
+
+  --track-colors: var(--neon-red), var(--neon-orange), var(--neon-cyan),
+    var(--neon-magenta), var(--neon-lime), var(--neon-violet);
+
+  --glow-intensity: 1;
+}
+
+/* ── Base Styles ─────────────────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background-color: var(--bg-950);
+  color: #e0e0f0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle grid background texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-900);
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a4a;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-cyan);
+}
+
+/* ── Step Grid Cell ─────────────────────────────────────────────────────────── */
+.step-cell {
+  position: relative;
+  border-radius: 4px;
+  transition: transform 0.08s ease, box-shadow 0.1s ease, background-color 0.1s ease;
+  cursor: pointer;
+  min-height: 36px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: #111122;
+  overflow: hidden;
+}
+
+.step-cell:hover {
+  transform: scale(1.06);
+  border-color: rgba(255,255,255,0.15);
+}
+
+.step-cell:active {
+  transform: scale(0.94);
+}
+
+.step-cell.active {
+  animation: stepFlash 0.12s ease-out;
+}
+
+/* Shimmer overlay on active cells */
+.step-cell.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255,255,255,0.12) 50%,
+    transparent 70%
+  );
+  animation: shimmer 2.5s linear infinite;
+  background-size: 200% 100%;
+}
+
+/* Playing column scan-line highlight */
+.step-cell.playing-column {
+  border-color: rgba(255,255,255,0.35);
+}
+.step-cell.playing-column::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+}
+
+/* Locked track cells */
+.step-cell.locked {
+  opacity: 0.25;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Kick Screen Pulse ──────────────────────────────────────────────────────── */
+.kick-pulse {
+  animation: screenPulse 0.08s ease-out;
+}
+
+/* ── Neon Text Glow ─────────────────────────────────────────────────────────── */
+.text-glow-cyan {
+  text-shadow: 0 0 8px var(--neon-cyan), 0 0 20px var(--neon-cyan);
+}
+.text-glow-magenta {
+  text-shadow: 0 0 8px var(--neon-magenta), 0 0 20px var(--neon-magenta);
+}
+.text-glow-lime {
+  text-shadow: 0 0 8px var(--neon-lime), 0 0 20px var(--neon-lime);
+}
+.text-glow-white {
+  text-shadow: 0 0 6px rgba(255,255,255,0.8), 0 0 16px rgba(255,255,255,0.4);
+}
+
+/* ── Neon Button ─────────────────────────────────────────────────────────────── */
+.btn-neon {
+  position: relative;
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+  border: 1px solid;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.btn-neon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.btn-neon:hover::before {
+  opacity: 1;
+}
+
+.btn-neon:active {
+  transform: scale(0.96);
+}
+
+.btn-neon-cyan {
+  background: rgba(0, 245, 255, 0.1);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+  box-shadow: 0 0 12px rgba(0, 245, 255, 0.2), inset 0 0 12px rgba(0, 245, 255, 0.05);
+}
+.btn-neon-cyan:hover {
+  background: rgba(0, 245, 255, 0.18);
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.4), inset 0 0 12px rgba(0, 245, 255, 0.1);
+}
+
+.btn-neon-magenta {
+  background: rgba(255, 0, 168, 0.1);
+  border-color: var(--neon-magenta);
+  color: var(--neon-magenta);
+  box-shadow: 0 0 12px rgba(255, 0, 168, 0.2), inset 0 0 12px rgba(255, 0, 168, 0.05);
+}
+.btn-neon-magenta:hover {
+  background: rgba(255, 0, 168, 0.18);
+  box-shadow: 0 0 20px rgba(255, 0, 168, 0.4);
+}
+
+.btn-neon-lime {
+  background: rgba(168, 255, 0, 0.1);
+  border-color: var(--neon-lime);
+  color: var(--neon-lime);
+  box-shadow: 0 0 12px rgba(168, 255, 0, 0.2);
+}
+.btn-neon-lime:hover {
+  background: rgba(168, 255, 0, 0.18);
+  box-shadow: 0 0 20px rgba(168, 255, 0, 0.4);
+}
+
+.btn-neon-white {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.3);
+  color: #e0e0f0;
+  box-shadow: 0 0 8px rgba(255,255,255,0.08);
+}
+.btn-neon-white:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 0 16px rgba(255,255,255,0.15);
+}
+
+/* ── Track header knob ──────────────────────────────────────────────────────── */
+.track-knob {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: #1e1e36;
+  outline: none;
+  cursor: pointer;
+}
+
+.track-knob::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: currentColor;
+  cursor: pointer;
+  box-shadow: 0 0 6px currentColor;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.track-knob::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+  box-shadow: 0 0 12px currentColor;
+}
+
+.track-knob::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: currentColor;
+  cursor: pointer;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* ── Room code display ──────────────────────────────────────────────────────── */
+.room-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 8px rgba(0, 245, 255, 0.5));
+}
+
+/* ── Peer avatar ─────────────────────────────────────────────────────────────── */
+.peer-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 2px solid;
+  box-shadow: 0 0 8px currentColor;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.peer-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 16px currentColor;
+}
+
+/* ── Glass card ─────────────────────────────────────────────────────────────── */
+.glass-card {
+  background: rgba(16, 16, 30, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+}
+
+/* ── Unlock toast ───────────────────────────────────────────────────────────── */
+.unlock-toast {
+  animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Beat indicator dot ─────────────────────────────────────────────────────── */
+.beat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transition: background 0.05s ease, box-shadow 0.05s ease;
+}
+.beat-dot.active {
+  background: var(--neon-cyan);
+  box-shadow: 0 0 6px var(--neon-cyan);
+}
+
+/* keyframes are defined in the @theme block above */
+
+
+/* ── Mobile touch targets ───────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .step-cell {
+    min-height: 40px;
+  }
+}
