@@ -34,6 +34,10 @@ export interface HostCallbacks {
   onPeerJoined: (peer: PeerInfo) => void;
   onPeerLeft: (peerId: string) => void;
   onError: (err: Error) => void;
+  /** Called when a PLAY command is issued — host should start its sequencer at this time */
+  onPlay: (startAtHostTime: number, startBeat: number, bpm: number, sentAt: number) => void;
+  /** Called when a STOP command is issued */
+  onStop: () => void;
 }
 
 export class HostManager {
@@ -200,6 +204,25 @@ export class HostManager {
         this.callbacks.onStateChange(this.state);
         break;
       }
+
+      case 'PLAY': {
+        // Host is authoritative: broadcast a PLAY with a future start time
+        // so all peers (including latecomers) can sync to the same beat grid
+        const ctx = getAudioContext();
+        // 300ms pre-roll gives guests time to receive and prepare
+        const PRE_ROLL = 0.3;
+        const startAtHostTime = ctx.currentTime + PRE_ROLL;
+        const startBeat = 0;
+        this.broadcast({ type: 'PLAY', startAtHostTime, startBeat, bpm: this.state.bpm });
+        this.callbacks.onPlay(startAtHostTime, startBeat, this.state.bpm, ctx.currentTime);
+        break;
+      }
+
+      case 'STOP': {
+        this.broadcast({ type: 'STOP' });
+        this.callbacks.onStop();
+        break;
+      }
     }
   }
 
@@ -238,6 +261,14 @@ export class HostManager {
       step,
       clientTimestamp: Date.now(),
     });
+  }
+
+  applyLocalPlay(): void {
+    this.handleClientMessage('host', { type: 'PLAY' });
+  }
+
+  applyLocalStop(): void {
+    this.handleClientMessage('host', { type: 'STOP' });
   }
 
   applyLocalTempo(bpm: number): void {

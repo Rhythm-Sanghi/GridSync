@@ -46,6 +46,10 @@ export interface GuestCallbacks {
   onConnectionStateChange: (state: ConnectionState) => void;
   onBecomingHost: (lastState: RoomState) => void;
   onError: (err: Error) => void;
+  /** Called when the host broadcasts PLAY — guest should start sequencer synced */
+  onPlay: (startAtHostTime: number, startBeat: number, bpm: number, receivedAt: number) => void;
+  /** Called when the host broadcasts STOP */
+  onStop: () => void;
 }
 
 export class GuestManager {
@@ -225,6 +229,17 @@ export class GuestManager {
           cellAuthorship: msg.cellAuthorship,
         };
         this.callbacks.onStateChange(this.lastKnownState);
+        break;
+      }
+
+      case 'PLAY': {
+        const ctx = getAudioContext();
+        this.callbacks.onPlay(msg.startAtHostTime, msg.startBeat, msg.bpm, ctx.currentTime);
+        break;
+      }
+
+      case 'STOP': {
+        this.callbacks.onStop();
         break;
       }
     }

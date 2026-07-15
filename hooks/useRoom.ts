@@ -92,6 +92,9 @@ export function useRoom(
           becomingHostHandlerRef.current?.(state);
         },
         onError: (err) => console.error('[Room] Guest error:', err),
+        // Play/stop is managed by the room page directly via the sequencer
+        onPlay: () => {},
+        onStop: () => {},
       });
 
       guestManagerRef.current = guestManager;

@@ -91,6 +91,36 @@ export class Sequencer {
     this.tick();
   }
 
+  /**
+   * Start synchronized to the host's beat grid.
+   * hostStartTime: host's AudioContext.currentTime when beat `startBeat` should fire.
+   * hostSentAt: our local AudioContext.currentTime when we received the PLAY message.
+   * The difference (localNow - hostSentAt) approximates one-way network latency.
+   */
+  startSynced(hostStartTime: number, startBeat: number, bpm: number, hostSentAt: number): void {
+    if (this.isRunning) this.stop();
+    this.ctx = getAudioContext();
+    this.isRunning = true;
+    this.bpm = bpm;
+
+    const localNow = this.ctx.currentTime;
+    // Estimate when the host's startBeat fires in our local clock
+    const estimatedLatency = localNow - hostSentAt;  // one-way approx
+    const localStartTime = hostStartTime + estimatedLatency;
+
+    this.currentBeat = startBeat;
+    this.nextNoteTime = localStartTime;
+
+    // If the start time has already passed (e.g. slow network), catch up
+    const stepDur = 60.0 / (bpm * 4);
+    while (this.nextNoteTime < localNow + 0.01) {
+      this.nextNoteTime += stepDur;
+      this.currentBeat++;
+    }
+
+    this.tick();
+  }
+
   stop(): void {
     this.isRunning = false;
     if (this.timerId !== null) {

@@ -22,6 +22,10 @@ export interface UseSequencerReturn {
 
   // Actions
   togglePlay: () => void;
+  /** Start sequencer locked to host's beat grid */
+  startSynced: (startAtHostTime: number, startBeat: number, bpm: number, receivedAt: number) => void;
+  /** Stop sequencer and reset visual step */
+  stopAll: () => void;
   toggleStep: (track: number, step: number, peerId?: string) => void;
   setTempo: (bpm: number) => void;
   setGrid: (grid: GridState, authorship: CellAuthorship) => void;
@@ -113,6 +117,35 @@ export function useSequencer(
     }
   }, [audioReady, initAudio]);
 
+  /**
+   * Start sequencer synchronized to the host's audio clock.
+   * Called by the room page when it receives a PLAY message from the network.
+   */
+  const startSynced = useCallback(
+    async (startAtHostTime: number, startBeat: number, bpm: number, receivedAt: number) => {
+      if (!audioReady) {
+        await initAudio();
+      }
+      const seq = sequencerRef.current;
+      if (!seq) return;
+      seq.startSynced(startAtHostTime, startBeat, bpm, receivedAt);
+      setIsPlaying(true);
+    },
+    [audioReady, initAudio],
+  );
+
+  /**
+   * Stop sequencer and reset visual step counter.
+   * Called by the room page when it receives a STOP message from the network.
+   */
+  const stopAll = useCallback(() => {
+    const seq = sequencerRef.current;
+    if (!seq) return;
+    seq.stop();
+    setIsPlaying(false);
+    setCurrentStep(0);
+  }, []);
+
   const toggleStep = useCallback((track: number, step: number, peerId: string = 'local') => {
     setGridState((prev) => {
       const newGrid = prev.map((row) => [...row]);
@@ -166,6 +199,8 @@ export function useSequencer(
     audioReady,
     kickPulse,
     togglePlay,
+    startSynced,
+    stopAll,
     toggleStep,
     setTempo,
     setGrid,

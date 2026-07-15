@@ -71,6 +71,8 @@ export default function RoomPage({ params }: RoomPageProps) {
     audioReady,
     kickPulse,
     togglePlay,
+    startSynced,
+    stopAll,
     toggleStep,
     setTempo,
     setGrid,
@@ -181,6 +183,10 @@ export default function RoomPage({ params }: RoomPageProps) {
               setPeerColors({ ...peerColorsRef.current });
             },
             onError: (err) => console.error('[Room] Host error:', err),
+            onPlay: (startAtHostTime, startBeat, bpm, sentAt) => {
+              startSynced(startAtHostTime, startBeat, bpm, sentAt);
+            },
+            onStop: () => stopAll(),
           });
 
           await manager.start();
@@ -247,6 +253,10 @@ export default function RoomPage({ params }: RoomPageProps) {
               setPeerColors({ ...peerColorsRef.current });
             },
             onError: (err) => console.error('[Room] Promoted host error:', err),
+            onPlay: (startAtHostTime, startBeat, bpm, sentAt) => {
+              startSynced(startAtHostTime, startBeat, bpm, sentAt);
+            },
+            onStop: () => stopAll(),
           });
           setHostManager(newManager);
           setConnectionState('connected');
@@ -254,6 +264,10 @@ export default function RoomPage({ params }: RoomPageProps) {
         onError: (err) => {
           console.warn('[Room] Guest connection error:', err);
         },
+        onPlay: (startAtHostTime, startBeat, bpm, receivedAt) => {
+          startSynced(startAtHostTime, startBeat, bpm, receivedAt);
+        },
+        onStop: () => stopAll(),
       });
 
       setGuestManager(manager);
@@ -279,6 +293,30 @@ export default function RoomPage({ params }: RoomPageProps) {
   }, [roomCode]);
 
   // ── User actions — routed through host/guest ──────────────────────────────
+  /**
+   * Networked play/stop:
+   * - Host: routes through HostManager which broadcasts PLAY/STOP then calls onPlay/onStop
+   * - Guest: sends PLAY/STOP request to host; host validates, broadcasts, everyone starts together
+   * - Solo: falls back to local togglePlay
+   */
+  const handleTogglePlay = useCallback(async () => {
+    if (!audioReady) await initAudio();
+
+    if (role === 'host' && hostManager) {
+      if (isPlaying) {
+        hostManager.applyLocalStop();
+      } else {
+        hostManager.applyLocalPlay();
+      }
+    } else if (role === 'guest' && guestManager) {
+      // Guest requests play/stop from host; the host will echo it back to everyone
+      guestManager.sendMessage({ type: isPlaying ? 'STOP' : 'PLAY' });
+    } else {
+      // Solo mode — no network, just local
+      togglePlay();
+    }
+  }, [role, hostManager, guestManager, isPlaying, audioReady, initAudio, togglePlay]);
+
   const handleToggleStep = useCallback(
     (track: number, step: number) => {
       if (!audioReady) initAudio();
@@ -407,7 +445,7 @@ export default function RoomPage({ params }: RoomPageProps) {
             bpm={bpm}
             isRecording={isRecording}
             recordingDuration={recordingDuration}
-            onTogglePlay={togglePlay}
+            onTogglePlay={handleTogglePlay}
             onSetTempo={handleSetTempo}
             onRandomize={handleRandomize}
             onToggleRecording={handleToggleRecord}

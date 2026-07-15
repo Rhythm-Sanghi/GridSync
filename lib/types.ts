@@ -66,7 +66,9 @@ export type ClientMessage =
   | { type: 'SET_TEMPO'; bpm: number }
   | { type: 'RANDOMIZE' }
   | { type: 'SET_TRACK_PARAM'; track: number; param: 'pitch' | 'filterCutoff' | 'gain' | 'waveform' | 'muted'; value: number | string | boolean }
-  | { type: 'CURSOR_MOVE'; x: number; y: number };
+  | { type: 'CURSOR_MOVE'; x: number; y: number }
+  | { type: 'PLAY' }
+  | { type: 'STOP' };
 
 export type HostMessage =
   | { type: 'FULL_STATE'; state: RoomState; hostAudioContextTime: number }
@@ -76,7 +78,11 @@ export type HostMessage =
   | { type: 'BEAT_SYNC'; hostAudioContextTime: number; nextBeatIndex: number; bpm: number }
   | { type: 'PEER_JOINED'; peer: PeerInfo }
   | { type: 'PEER_LEFT'; peerId: string }
-  | { type: 'GRID_RANDOMIZED'; grid: GridState; cellAuthorship: CellAuthorship };
+  | { type: 'GRID_RANDOMIZED'; grid: GridState; cellAuthorship: CellAuthorship }
+  /** Play command: startAt is host AudioContext.currentTime + a small pre-roll so all guests can start together */
+  | { type: 'PLAY'; startAtHostTime: number; startBeat: number; bpm: number }
+  /** Stop command: all peers stop immediately */
+  | { type: 'STOP' };
 
 // ─── Milestone / Unlock Types ─────────────────────────────────────────────────
 
