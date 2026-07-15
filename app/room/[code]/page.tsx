@@ -42,9 +42,23 @@ export default function RoomPage({ params }: RoomPageProps) {
 
   // ── Role detection ────────────────────────────────────────────────────────
   const [role, setRole] = useState<'host' | 'guest' | 'solo'>('solo');
+  const roleRef = useRef<'host' | 'guest' | 'solo'>('solo');
+
   const [hostManager, setHostManager] = useState<HostManager | null>(null);
+  const hostManagerRef = useRef<HostManager | null>(null);
+
   const [guestManager, setGuestManager] = useState<GuestManager | null>(null);
+  const guestManagerRef = useRef<GuestManager | null>(null);
+
+  // Keep refs always in sync with state so callbacks never capture stale values
+  const setRoleSync = (r: typeof role) => { roleRef.current = r; setRole(r); };
+  const setHostManagerSync = (m: HostManager | null) => { hostManagerRef.current = m; setHostManager(m); };
+  const setGuestManagerSync = (m: GuestManager | null) => { guestManagerRef.current = m; setGuestManager(m); };
+
   const [myPeerId, setMyPeerId] = useState<string | null>(null);
+  const myPeerIdRef = useRef<string | null>(null);
+  const setMyPeerIdSync = (id: string | null) => { myPeerIdRef.current = id; setMyPeerId(id); };
+
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState | 'idle'>('idle');
   const [pendingUnlocks, setPendingUnlocks] = useState<UnlockEvent[]>([]);
@@ -135,8 +149,8 @@ export default function RoomPage({ params }: RoomPageProps) {
 
     if (isHost) {
       sessionStorage.removeItem(`gridsync_role_${roomCode}`);
-      setRole('host');
-      setMyPeerId(getHostPeerId(roomCode));
+      setRoleSync('host');
+      setMyPeerIdSync(getHostPeerId(roomCode));
 
       const trackCount = loadUnlockedTrackCount();
       const tracks = makeDefaultTracks(trackCount);
@@ -190,7 +204,7 @@ export default function RoomPage({ params }: RoomPageProps) {
           });
 
           await manager.start();
-          setHostManager(manager);
+          setHostManagerSync(manager);
           setConnectionState('connected');
         } catch (err: unknown) {
           if (err instanceof Error && err.message === 'ROOM_CODE_TAKEN') {
@@ -206,7 +220,7 @@ export default function RoomPage({ params }: RoomPageProps) {
       tryStartHost();
     } else {
       // Guest flow
-      setRole('guest');
+      setRoleSync('guest');
 
       const manager = new GuestManager(roomCode, {
         onStateChange: (state) => {
@@ -235,8 +249,8 @@ export default function RoomPage({ params }: RoomPageProps) {
           }
         },
         onBecomingHost: (lastState) => {
-          setRole('host');
-          setMyPeerId(getHostPeerId(roomCode));
+          setRoleSync('host');
+          setMyPeerIdSync(getHostPeerId(roomCode));
           const newManager = new HostManager(roomCode, lastState, {
             onStateChange: (state) => {
               setGrid(state.grid, state.cellAuthorship);
@@ -258,7 +272,7 @@ export default function RoomPage({ params }: RoomPageProps) {
             },
             onStop: () => stopAll(),
           });
-          setHostManager(newManager);
+          setHostManagerSync(newManager);
           setConnectionState('connected');
         },
         onError: (err) => {
@@ -270,24 +284,24 @@ export default function RoomPage({ params }: RoomPageProps) {
         onStop: () => stopAll(),
       });
 
-      setGuestManager(manager);
+      setGuestManagerSync(manager);
       manager.connect().then(() => {
-        setMyPeerId(manager.getMyPeerId());
+        setMyPeerIdSync(manager.getMyPeerId());
       }).catch((err) => {
         console.warn('[Room] Guest failed to connect, going solo:', err);
-        setRole('solo');
+        setRoleSync('solo');
         setConnectionState('failed');
       });
 
       return () => {
         manager.destroy();
-        setGuestManager(null);
+        setGuestManagerSync(null);
       };
     }
 
     return () => {
-      hostManager?.destroy();
-      setHostManager(null);
+      hostManagerRef.current?.destroy();
+      setHostManagerSync(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomCode]);
@@ -302,73 +316,90 @@ export default function RoomPage({ params }: RoomPageProps) {
   const handleTogglePlay = useCallback(async () => {
     if (!audioReady) await initAudio();
 
-    if (role === 'host' && hostManager) {
+    // Read from refs — never stale, even if state hasn't re-rendered yet
+    const currentRole = roleRef.current;
+    const currentHost = hostManagerRef.current;
+    const currentGuest = guestManagerRef.current;
+
+    if (currentRole === 'host' && currentHost) {
       if (isPlaying) {
-        hostManager.applyLocalStop();
+        currentHost.applyLocalStop();
       } else {
-        hostManager.applyLocalPlay();
+        currentHost.applyLocalPlay();
       }
-    } else if (role === 'guest' && guestManager) {
-      // Guest requests play/stop from host; the host will echo it back to everyone
-      guestManager.sendMessage({ type: isPlaying ? 'STOP' : 'PLAY' });
+    } else if (currentRole === 'guest' && currentGuest) {
+      currentGuest.sendMessage({ type: isPlaying ? 'STOP' : 'PLAY' });
     } else {
-      // Solo mode — no network, just local
       togglePlay();
     }
-  }, [role, hostManager, guestManager, isPlaying, audioReady, initAudio, togglePlay]);
+  }, [audioReady, initAudio, isPlaying, togglePlay]);
 
   const handleToggleStep = useCallback(
     (track: number, step: number) => {
       if (!audioReady) initAudio();
-      if (role === 'host' && hostManager) {
-        hostManager.applyLocalToggle(track, step, myPeerId ?? 'host');
-      } else if (role === 'guest' && guestManager) {
-        guestManager.sendMessage({
+
+      // Read from refs — never stale, even if state hasn't re-rendered yet
+      const currentRole = roleRef.current;
+      const currentHost = hostManagerRef.current;
+      const currentGuest = guestManagerRef.current;
+      const currentPeerId = myPeerIdRef.current;
+
+      if (currentRole === 'host' && currentHost) {
+        currentHost.applyLocalToggle(track, step, currentPeerId ?? 'host');
+      } else if (currentRole === 'guest' && currentGuest) {
+        currentGuest.sendMessage({
           type: 'TOGGLE_STEP',
           track,
           step,
           clientTimestamp: Date.now(),
         });
-        toggleStep(track, step, myPeerId ?? 'guest');
+        // Optimistic local update so the cell flips immediately on the clicking peer
+        toggleStep(track, step, currentPeerId ?? 'guest');
       } else {
         toggleStep(track, step, 'local');
       }
     },
-    [role, hostManager, guestManager, myPeerId, audioReady, initAudio, toggleStep],
+    [audioReady, initAudio, toggleStep],
   );
 
   const handleSetTempo = useCallback(
     (newBpm: number) => {
       setTempo(newBpm);
-      if (role === 'host' && hostManager) {
-        hostManager.applyLocalTempo(newBpm);
-      } else if (role === 'guest' && guestManager) {
-        guestManager.sendMessage({ type: 'SET_TEMPO', bpm: newBpm });
+      const h = hostManagerRef.current;
+      const g = guestManagerRef.current;
+      if (roleRef.current === 'host' && h) {
+        h.applyLocalTempo(newBpm);
+      } else if (roleRef.current === 'guest' && g) {
+        g.sendMessage({ type: 'SET_TEMPO', bpm: newBpm });
       }
     },
-    [role, hostManager, guestManager, setTempo],
+    [setTempo],
   );
 
   const handleRandomize = useCallback(() => {
-    if (role === 'host' && hostManager) {
-      hostManager.applyLocalRandomize();
-    } else if (role === 'guest' && guestManager) {
-      guestManager.sendMessage({ type: 'RANDOMIZE' });
+    const h = hostManagerRef.current;
+    const g = guestManagerRef.current;
+    if (roleRef.current === 'host' && h) {
+      h.applyLocalRandomize();
+    } else if (roleRef.current === 'guest' && g) {
+      g.sendMessage({ type: 'RANDOMIZE' });
     } else {
       const { grid: newGrid, authorship } = generateRandomPattern(
         trackConfigs.filter((t) => t.unlocked).length,
       );
       setGrid(newGrid, authorship);
     }
-  }, [role, hostManager, guestManager, trackConfigs, setGrid]);
+  }, [trackConfigs, setGrid]);
 
   const handleTrackParam = useCallback(
     (track: number, param: string, value: number | string | boolean) => {
       updateTrackParam(track, param, value);
-      if (role === 'host' && hostManager) {
-        hostManager.applyLocalTrackParam(track, param, value);
-      } else if (role === 'guest' && guestManager) {
-        guestManager.sendMessage({
+      const h = hostManagerRef.current;
+      const g = guestManagerRef.current;
+      if (roleRef.current === 'host' && h) {
+        h.applyLocalTrackParam(track, param, value);
+      } else if (roleRef.current === 'guest' && g) {
+        g.sendMessage({
           type: 'SET_TRACK_PARAM',
           track,
           param: param as 'pitch' | 'filterCutoff' | 'gain' | 'waveform' | 'muted',
@@ -376,7 +407,7 @@ export default function RoomPage({ params }: RoomPageProps) {
         });
       }
     },
-    [role, hostManager, guestManager, updateTrackParam],
+    [updateTrackParam],
   );
 
   const handleToggleRecord = useCallback(() => {
