@@ -10,23 +10,17 @@ interface GridProps {
   currentStep: number;
   isPlaying: boolean;
   myPeerId: string | null;
-  peerColors: Record<string, string>; // peerId → color
+  peerColors: Record<string, string>;
   onToggleStep: (track: number, step: number) => void;
 }
 
 const STEP_COUNT = 16;
 
-/** Returns a hex color with reduced opacity for cell background */
 function hexWithOpacity(hex: string, opacity: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${opacity})`;
-}
-
-// Beat grouping — steps are visually grouped in sets of 4 (one quarter note each)
-function getBeatGroup(stepIndex: number): number {
-  return Math.floor(stepIndex / 4);
 }
 
 const StepCell = memo(function StepCell({
@@ -50,14 +44,18 @@ const StepCell = memo(function StepCell({
 
   const cellStyle: React.CSSProperties = active
     ? {
-        backgroundColor: hexWithOpacity(displayColor, 0.75),
-        borderColor: displayColor,
-        boxShadow: `0 0 10px ${hexWithOpacity(displayColor, 0.6)}, inset 0 0 6px ${hexWithOpacity(displayColor, 0.3)}`,
+        backgroundColor: displayColor,
+        boxShadow: [
+          'inset 0 1px 0 rgba(255,230,180,0.22)',
+          'inset 0 -1px 0 rgba(0,0,0,0.28)',
+          `0 0 9px ${hexWithOpacity(displayColor, 0.32)}`,
+          `0 0 2px ${hexWithOpacity(displayColor, 0.55)}`,
+        ].join(', '),
       }
     : isCurrentStep && isPlaying
     ? {
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderColor: 'rgba(255,255,255,0.25)',
+        backgroundColor: 'rgba(255,200,100,0.05)',
+        borderColor: 'rgba(255,200,100,0.16)',
       }
     : {};
 
@@ -97,22 +95,28 @@ export const Grid = memo(function Grid({
   );
 
   return (
-    <div className="w-full overflow-x-auto pb-2">
+    <div className="w-full overflow-x-auto pb-1">
       <div className="min-w-[480px]">
-        {/* Step index labels */}
-        <div className="flex gap-0.5 mb-1 pl-[72px] pr-1">
+        {/* Beat number labels */}
+        <div className="flex mb-1" style={{ paddingLeft: '72px' }}>
           {Array.from({ length: STEP_COUNT }, (_, i) => (
-            <div
-              key={i}
-              className={[
-                'flex-1 text-center text-xs font-mono transition-colors duration-75',
-                currentStep === i && isPlaying
-                  ? 'text-white'
-                  : (i % 4 === 0 ? 'text-white/30' : 'text-white/10'),
-              ].join(' ')}
-            >
-              {i % 4 === 0 ? i / 4 + 1 : '·'}
-            </div>
+            <React.Fragment key={i}>
+              {i > 0 && i % 4 === 0 && <div style={{ width: 7 }} />}
+              <div
+                className="flex-1 text-center font-mono"
+                style={{
+                  fontSize: '9px',
+                  color: currentStep === i && isPlaying
+                    ? 'var(--amber-hot)'
+                    : i % 4 === 0
+                    ? 'var(--ink-mute)'
+                    : 'var(--border-warm)',
+                  transition: 'color 0.05s',
+                }}
+              >
+                {i % 4 === 0 ? String(i / 4 + 1) : '·'}
+              </div>
+            </React.Fragment>
           ))}
         </div>
 
@@ -122,13 +126,12 @@ export const Grid = memo(function Grid({
           const trackAuth = cellAuthorship[trackIndex] ?? Array(STEP_COUNT).fill(null);
 
           return (
-            <div key={config.id} className="flex items-center gap-0.5 mb-1">
-              {/* Track label (handled by TrackHeader, here just a spacer) */}
-              <div className="w-[72px] shrink-0" />
+            <div key={config.id} className="flex items-center mb-1">
+              {/* Spacer for track headers (rendered separately) */}
+              <div style={{ width: 72, flexShrink: 0 }} />
 
-              {/* Steps with beat-group visual separation */}
+              {/* Cells with beat-group separators */}
               {Array.from({ length: STEP_COUNT }, (_, stepIndex) => {
-                const beatGroup = getBeatGroup(stepIndex);
                 const active = trackGrid[stepIndex] ?? false;
                 const authorPeerId = trackAuth[stepIndex];
                 const authorColor = authorPeerId ? (peerColors[authorPeerId] ?? null) : null;
@@ -136,7 +139,15 @@ export const Grid = memo(function Grid({
                 return (
                   <React.Fragment key={stepIndex}>
                     {stepIndex > 0 && stepIndex % 4 === 0 && (
-                      <div className="w-px h-full bg-white/5 mx-0.5 shrink-0" />
+                      <div
+                        style={{
+                          width: 1,
+                          alignSelf: 'stretch',
+                          background: 'var(--border-mid)',
+                          margin: '0 3px',
+                          flexShrink: 0,
+                        }}
+                      />
                     )}
                     <StepCell
                       active={active}
@@ -154,16 +165,17 @@ export const Grid = memo(function Grid({
           );
         })}
 
-        {/* Beat position indicator dots */}
-        <div className="flex gap-0.5 mt-2 pl-[72px] pr-1">
+        {/* Beat position dots */}
+        <div className="flex mt-2" style={{ paddingLeft: '72px' }}>
           {Array.from({ length: STEP_COUNT }, (_, i) => (
-            <div
-              key={i}
-              className={[
-                'beat-dot flex-1',
-                currentStep === i && isPlaying ? 'active' : '',
-              ].join(' ')}
-            />
+            <React.Fragment key={i}>
+              {i > 0 && i % 4 === 0 && <div style={{ width: 7 }} />}
+              <div className="flex-1 flex justify-center">
+                <div
+                  className={['beat-dot', currentStep === i && isPlaying ? 'active' : ''].join(' ')}
+                />
+              </div>
+            </React.Fragment>
           ))}
         </div>
       </div>

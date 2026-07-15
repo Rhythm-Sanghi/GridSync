@@ -25,15 +25,15 @@ export const ROOM_CODE_LENGTH = 4;
 export const MAX_ROOM_CLAIM_ATTEMPTS = 5;
 export const PEER_ID_PREFIX = 'gridsync';
 
-// ─── Neon Color Palettes ───────────────────────────────────────────────────────
+// ─── Analog Color Palettes ─────────────────────────────────────────────────────
 
 /** Colors assigned to peers in join order */
 export const PEER_COLORS = [
-  '#00f5ff', // cyan
-  '#ff00a8', // magenta
-  '#a8ff00', // lime
-  '#ff8c00', // orange
-  '#b400ff', // violet
+  '#c89a40', // brass-gold
+  '#a05828', // copper
+  '#4e6a52', // sage-green
+  '#4a4070', // dusty-violet
+  '#8a4040', // muted-rust
 ] as const;
 
 /** Emojis assigned to peers in join order */
@@ -51,7 +51,7 @@ export const BASE_TRACKS: Omit<TrackConfig, 'id'>[] = [
     waveform: 'sine',
     muted: false,
     unlocked: true,
-    color: '#ff4466',
+    color: '#c87010', // amber-orange
   },
   {
     instrument: 'snare',
@@ -62,7 +62,7 @@ export const BASE_TRACKS: Omit<TrackConfig, 'id'>[] = [
     waveform: 'sine',
     muted: false,
     unlocked: true,
-    color: '#ffaa00',
+    color: '#a03028', // deep rust-red
   },
   {
     instrument: 'hihat',
@@ -73,7 +73,7 @@ export const BASE_TRACKS: Omit<TrackConfig, 'id'>[] = [
     waveform: 'sine',
     muted: false,
     unlocked: true,
-    color: '#00f5ff',
+    color: '#9a8020', // olive-brass
   },
   {
     instrument: 'clap',
@@ -84,7 +84,7 @@ export const BASE_TRACKS: Omit<TrackConfig, 'id'>[] = [
     waveform: 'sine',
     muted: false,
     unlocked: true,
-    color: '#ff00a8',
+    color: '#986030', // copper
   },
   {
     instrument: 'bass',
@@ -95,7 +95,7 @@ export const BASE_TRACKS: Omit<TrackConfig, 'id'>[] = [
     waveform: 'sawtooth',
     muted: false,
     unlocked: true,
-    color: '#a8ff00',
+    color: '#345848', // forest
   },
   {
     instrument: 'lead',
@@ -106,7 +106,7 @@ export const BASE_TRACKS: Omit<TrackConfig, 'id'>[] = [
     waveform: 'square',
     muted: false,
     unlocked: true,
-    color: '#b400ff',
+    color: '#4e4068', // dusty violet
   },
   // Milestone-gated tracks (unlocked at 3rd and 10th session)
   {
@@ -118,7 +118,7 @@ export const BASE_TRACKS: Omit<TrackConfig, 'id'>[] = [
     waveform: 'sine',
     muted: false,
     unlocked: false,
-    color: '#00ff88',
+    color: '#7a6818', // dark olive
   },
   {
     instrument: 'pad',
@@ -129,7 +129,7 @@ export const BASE_TRACKS: Omit<TrackConfig, 'id'>[] = [
     waveform: 'triangle',
     muted: false,
     unlocked: false,
-    color: '#ff8c00',
+    color: '#3a5e68', // teal-slate
   },
 ];
 

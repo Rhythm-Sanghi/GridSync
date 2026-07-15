@@ -14,11 +14,8 @@ export const UnlockToast = memo(function UnlockToast({ unlocks }: UnlockToastPro
   useEffect(() => {
     if (unlocks.length === 0) return;
     setVisible(unlocks);
-
-    // Mark all as shown immediately to prevent re-display on next load
     unlocks.forEach((u) => markUnlockShown(u.id));
-
-    const timer = setTimeout(() => setVisible([]), 5000);
+    const timer = setTimeout(() => setVisible([]), 5500);
     return () => clearTimeout(timer);
   }, [unlocks]);
 
@@ -29,13 +26,30 @@ export const UnlockToast = memo(function UnlockToast({ unlocks }: UnlockToastPro
       {visible.map((unlock) => (
         <div
           key={unlock.id}
-          className="unlock-toast glass-card px-5 py-4 max-w-sm border border-neon-cyan/30"
-          style={{ boxShadow: '0 0 24px rgba(0,245,255,0.2)' }}
+          className="unlock-toast hw-panel px-5 py-4 max-w-xs"
+          style={{
+            borderColor: 'var(--border-warm)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.7), 0 0 0 1px var(--border-bright)',
+          }}
         >
-          <div className="text-lg font-bold text-neon-cyan text-glow-cyan mb-1">
+          {/* Title */}
+          <div
+            className="font-display italic font-semibold leading-snug"
+            style={{ fontSize: '1.1rem', color: 'var(--brass-light)', letterSpacing: '0.02em' }}
+          >
             {unlock.title}
           </div>
-          <div className="text-sm text-white/70">{unlock.description}</div>
+
+          {/* Divider */}
+          <div className="hw-rule my-2" />
+
+          {/* Description */}
+          <div
+            className="font-mono leading-relaxed"
+            style={{ fontSize: '11px', color: 'var(--ink-dim)' }}
+          >
+            {unlock.description}
+          </div>
         </div>
       ))}
     </div>

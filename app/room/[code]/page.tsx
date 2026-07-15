@@ -106,7 +106,6 @@ export default function RoomPage({ params }: RoomPageProps) {
     const prev = loadUnlockedTrackCount();
     if (unlocked > prev) {
       saveUnlockedTrackCount(unlocked);
-      // Apply newly unlocked tracks
       setTrackConfigs(makeDefaultTracks(unlocked));
     }
     const newUnlocks = checkAndFireUnlocks(count);
@@ -137,7 +136,6 @@ export default function RoomPage({ params }: RoomPageProps) {
       setRole('host');
       setMyPeerId(getHostPeerId(roomCode));
 
-      // Create seed state from default pattern
       const trackCount = loadUnlockedTrackCount();
       const tracks = makeDefaultTracks(trackCount);
       const { grid: seedGrid, authorship: seedAuth } = generateDefaultPattern(
@@ -169,7 +167,6 @@ export default function RoomPage({ params }: RoomPageProps) {
               setTrackConfigs(state.trackConfigs);
               setTempo(state.bpm);
               setPeers(state.connectedPeers);
-              // Update peer color map
               const colorMap: Record<string, string> = {};
               state.connectedPeers.forEach((p) => { colorMap[p.peerId] = p.color; });
               peerColorsRef.current = colorMap;
@@ -191,7 +188,6 @@ export default function RoomPage({ params }: RoomPageProps) {
           setConnectionState('connected');
         } catch (err: unknown) {
           if (err instanceof Error && err.message === 'ROOM_CODE_TAKEN') {
-            // Room code collision — this shouldn't happen often, but retry
             console.warn('[Room] Room code collision, retrying…');
             setTimeout(tryStartHost, 500);
           } else {
@@ -233,7 +229,6 @@ export default function RoomPage({ params }: RoomPageProps) {
           }
         },
         onBecomingHost: (lastState) => {
-          // Guest promoted to host — seed from last known state
           setRole('host');
           setMyPeerId(getHostPeerId(roomCode));
           const newManager = new HostManager(roomCode, lastState, {
@@ -253,7 +248,6 @@ export default function RoomPage({ params }: RoomPageProps) {
             },
             onError: (err) => console.error('[Room] Promoted host error:', err),
           });
-          // Start is already done via the guest's migration peer — just track it
           setHostManager(newManager);
           setConnectionState('connected');
         },
@@ -297,10 +291,8 @@ export default function RoomPage({ params }: RoomPageProps) {
           step,
           clientTimestamp: Date.now(),
         });
-        // Optimistic local update (will be corrected by host broadcast)
         toggleStep(track, step, myPeerId ?? 'guest');
       } else {
-        // Solo mode
         toggleStep(track, step, 'local');
       }
     },
@@ -325,7 +317,6 @@ export default function RoomPage({ params }: RoomPageProps) {
     } else if (role === 'guest' && guestManager) {
       guestManager.sendMessage({ type: 'RANDOMIZE' });
     } else {
-      // Solo mode — randomize locally
       const { grid: newGrid, authorship } = generateRandomPattern(
         trackConfigs.filter((t) => t.unlocked).length,
       );
@@ -354,7 +345,6 @@ export default function RoomPage({ params }: RoomPageProps) {
     if (isRecording) {
       stopRecording();
     } else {
-      // Create an offscreen canvas for recording the grid visual
       const canvas = document.createElement('canvas');
       canvas.width = 800;
       canvas.height = 200;
@@ -369,50 +359,38 @@ export default function RoomPage({ params }: RoomPageProps) {
   return (
     <div
       className={`relative min-h-screen flex flex-col pb-8 ${kickPulseClass}`}
-      style={{
-        background: isPlaying
-          ? 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,245,255,0.04) 0%, transparent 60%)'
-          : undefined,
-      }}
+      style={{ backgroundColor: 'var(--bg-void)' }}
     >
-      {/* Glow orbs */}
-      <div
-        className="pointer-events-none fixed inset-0 z-0"
-        aria-hidden="true"
-        style={{
-          background: `
-            radial-gradient(ellipse 40% 40% at 20% 20%, rgba(180,0,255,0.04) 0%, transparent 70%),
-            radial-gradient(ellipse 40% 40% at 80% 80%, rgba(0,245,255,0.03) 0%, transparent 70%)
-          `,
-        }}
-      />
+      <div className="relative z-10 flex flex-col gap-3 px-3 sm:px-6 pt-4 max-w-5xl mx-auto w-full">
 
-      <div className="relative z-10 flex flex-col gap-4 px-3 sm:px-6 pt-4 max-w-5xl mx-auto w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between gap-2">
           <a
             href="/"
-            className="font-black text-xl tracking-tighter hover:opacity-80 transition-opacity"
+            className="hover:opacity-70 transition-opacity"
+            aria-label="Grid-Sync home"
           >
-            <span style={{ color: 'var(--neon-cyan)' }}>Grid</span>
-            <span className="text-white/70">-</span>
-            <span style={{ color: 'var(--neon-magenta)' }}>Sync</span>
+            <span
+              className="font-display italic font-medium text-xl"
+              style={{ color: 'var(--ink)', letterSpacing: '-0.01em' }}
+            >
+              Grid&#8209;Sync
+            </span>
           </a>
 
-          {/* Audio init prompt */}
           {!audioReady && (
             <button
-              className="btn-neon btn-neon-white text-xs py-1.5"
+              className="hw-btn hw-btn-ghost text-xs py-1.5 px-3"
               onClick={initAudio}
               aria-label="Enable audio"
             >
-              🔊 Enable Audio
+              Enable Audio
             </button>
           )}
         </div>
 
-        {/* Room bar */}
-        <div className="glass-card p-3 sm:p-4">
+        {/* ── Room bar ────────────────────────────────────────────────────── */}
+        <div className="hw-panel p-3 sm:p-4">
           <RoomBar
             roomCode={roomCode}
             peers={peers}
@@ -422,8 +400,8 @@ export default function RoomPage({ params }: RoomPageProps) {
           />
         </div>
 
-        {/* Transport bar */}
-        <div className="glass-card p-3 sm:p-4">
+        {/* ── Transport bar ────────────────────────────────────────────────── */}
+        <div className="hw-panel p-3 sm:p-4">
           <TransportBar
             isPlaying={isPlaying}
             bpm={bpm}
@@ -436,15 +414,8 @@ export default function RoomPage({ params }: RoomPageProps) {
           />
         </div>
 
-        {/* Main sequencer grid */}
-        <div
-          className="glass-card p-3 sm:p-4"
-          style={{
-            boxShadow: isPlaying
-              ? '0 0 40px rgba(0,245,255,0.08), inset 0 0 40px rgba(0,245,255,0.02)'
-              : undefined,
-          }}
-        >
+        {/* ── Sequencer grid ───────────────────────────────────────────────── */}
+        <div className="hw-panel p-3 sm:p-4">
           {trackConfigs.length > 0 && (
             <div className="flex">
               {/* Track headers column */}
@@ -481,31 +452,46 @@ export default function RoomPage({ params }: RoomPageProps) {
 
           {/* Locked tracks notice */}
           {lockedTracks.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/5 text-xs text-white/25 font-mono text-center">
-              🔒 {lockedTracks.length} track{lockedTracks.length > 1 ? 's' : ''} unlock with more sessions
+            <div
+              className="mt-3 pt-3 text-[10px] font-mono text-center"
+              style={{
+                borderTop: '1px solid var(--border-dim)',
+                color: 'var(--ink-mute)',
+              }}
+            >
+              {lockedTracks.length} track{lockedTracks.length > 1 ? 's' : ''} unlock with more sessions
             </div>
           )}
         </div>
 
-        {/* WebRTC failed graceful degradation notice */}
+        {/* ── WebRTC failed notice ─────────────────────────────────────────── */}
         {connectionState === 'failed' && role === 'solo' && (
           <div
-            className="glass-card p-4 border border-neon-orange/30"
-            style={{ boxShadow: '0 0 16px rgba(255,140,0,0.1)' }}
+            className="hw-panel p-4"
+            style={{ borderColor: 'var(--rust)' }}
           >
-            <div className="text-sm text-neon-orange font-semibold mb-1">
-              ⚠️ Collaboration unavailable
+            <div
+              className="font-mono font-semibold text-[11px] uppercase tracking-wider mb-1"
+              style={{ color: 'var(--copper)' }}
+            >
+              Collaboration Unavailable
             </div>
-            <p className="text-xs text-white/40">
-              WebRTC couldn&apos;t connect (this sometimes happens on restrictive networks).
-              You can still jam solo — everything else works!
+            <p
+              className="font-mono text-[11px] leading-relaxed"
+              style={{ color: 'var(--ink-mute)' }}
+            >
+              WebRTC could not connect — this sometimes happens on restrictive networks.
+              You can still use the sequencer in solo mode.
             </p>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="text-center text-xs text-white/15 font-mono pt-2">
-          Grid-Sync · Real-time collaborative sequencer · No servers, no accounts
+        {/* ── Footer ──────────────────────────────────────────────────────── */}
+        <div
+          className="text-center font-mono text-[9px] uppercase tracking-widest pt-2"
+          style={{ color: 'var(--ink-mute)' }}
+        >
+          Grid-Sync &middot; Real-time collaborative sequencer &middot; No servers, no accounts
         </div>
       </div>
 

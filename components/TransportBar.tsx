@@ -25,44 +25,56 @@ export const TransportBar = memo(function TransportBar({
 }: TransportBarProps) {
   return (
     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+
       {/* Play / Stop */}
       <button
         id="btn-play-stop"
-        className={[
-          'btn-neon text-lg px-5 py-2.5 font-bold tracking-wide min-w-[100px]',
-          isPlaying ? 'btn-neon-magenta' : 'btn-neon-cyan',
-        ].join(' ')}
+        className={['hw-btn', isPlaying ? 'hw-btn-rust' : 'hw-btn-amber'].join(' ')}
+        style={{ minWidth: 88, fontSize: '12px', letterSpacing: '0.16em' }}
         onClick={onTogglePlay}
         aria-label={isPlaying ? 'Stop sequencer' : 'Play sequencer'}
       >
-        {isPlaying ? '⏹ STOP' : '▶ PLAY'}
+        {isPlaying ? 'Stop' : 'Play'}
       </button>
 
-      {/* BPM Control */}
-      <div className="flex items-center gap-2 glass-card px-3 py-1.5">
+      {/* BPM */}
+      <div
+        className="hw-panel-inset flex items-center gap-1 px-2 py-1.5"
+        style={{ gap: 6 }}
+      >
         <button
-          className="text-white/50 hover:text-white text-lg leading-none transition-colors w-6 h-6 flex items-center justify-center rounded hover:bg-white/10"
-          onClick={() => onSetTempo(bpm - 1)}
+          className="hw-btn hw-btn-ghost"
+          style={{ padding: '4px 8px', fontSize: '14px', lineHeight: 1, minWidth: 0 }}
+          onClick={() => onSetTempo(Math.max(40, bpm - 1))}
           aria-label="Decrease BPM"
         >
-          −
+          &minus;
         </button>
-        <div className="flex flex-col items-center">
+
+        <div className="flex flex-col items-center" style={{ minWidth: 56 }}>
           <input
             type="number"
             id="bpm-input"
-            className="w-14 text-center bg-transparent text-neon-cyan font-mono font-bold text-xl outline-none border-b border-neon-cyan/30 focus:border-neon-cyan/70 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="lcd-text bg-transparent text-center outline-none w-full border-none"
+            style={{ fontSize: '1.4rem', width: 56 }}
             value={bpm}
             min={40}
             max={240}
             onChange={(e) => onSetTempo(Number(e.target.value))}
             aria-label="BPM"
           />
-          <span className="text-[10px] text-white/30 font-mono uppercase tracking-widest">BPM</span>
+          <span
+            className="font-mono uppercase"
+            style={{ fontSize: '8px', letterSpacing: '0.25em', color: 'var(--ink-mute)' }}
+          >
+            BPM
+          </span>
         </div>
+
         <button
-          className="text-white/50 hover:text-white text-lg leading-none transition-colors w-6 h-6 flex items-center justify-center rounded hover:bg-white/10"
-          onClick={() => onSetTempo(bpm + 1)}
+          className="hw-btn hw-btn-ghost"
+          style={{ padding: '4px 8px', fontSize: '14px', lineHeight: 1, minWidth: 0 }}
+          onClick={() => onSetTempo(Math.min(240, bpm + 1))}
           aria-label="Increase BPM"
         >
           +
@@ -72,28 +84,27 @@ export const TransportBar = memo(function TransportBar({
       {/* Randomize */}
       <button
         id="btn-randomize"
-        className="btn-neon btn-neon-lime"
+        className="hw-btn hw-btn-ghost"
         onClick={onRandomize}
         aria-label="Generate random pattern"
       >
-        🎲 RANDOM
+        Random
       </button>
 
-      {/* Record / Export */}
+      {/* Record */}
       <button
         id="btn-record"
         className={[
-          'btn-neon',
-          isRecording ? 'btn-neon-magenta animate-pulse' : 'btn-neon-white',
+          'hw-btn',
+          isRecording ? 'hw-btn-rust' : 'hw-btn-ghost',
+          isRecording ? 'animate-[ledFastPulse_0.7s_ease-in-out_infinite]' : '',
         ].join(' ')}
         onClick={onToggleRecording}
         aria-label={isRecording ? 'Stop recording' : 'Start recording'}
       >
-        {isRecording ? (
-          <span>⏺ {recordingDuration}s REC</span>
-        ) : (
-          <span>📹 REC</span>
-        )}
+        {isRecording
+          ? `Rec  ${recordingDuration}s`
+          : 'Rec'}
       </button>
     </div>
   );
